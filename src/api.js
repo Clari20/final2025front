@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 // 🔧 URL de tu backend en Render
-const URL_BASE = 'https://final2025python-main.onrender.com'
+const URL_BASE = 'https://final2025python-main.onrender.com/'
 
 const api = axios.create({
   baseURL: URL_BASE,
