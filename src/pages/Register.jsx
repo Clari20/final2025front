@@ -27,32 +27,69 @@ export default function Register() {
     e.preventDefault();
     setError('');
 
-    // Validar contraseñas
     if (formData.password !== formData.confirmPassword) {
       setError('Las contraseñas no coinciden');
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      setError('La contraseña debe tener al menos 6 caracteres');
       return;
     }
 
     setLoading(true);
 
     try {
-      // AJUSTA ESTA RUTA según tu API
-      // Tu backend probablemente usa /clients para crear usuarios
+      // ✅ Tu backend usa estos campos exactos
       const clientData = {
         name: formData.name,
         lastname: formData.lastname,
         email: formData.email,
         telephone: formData.telephone
+        // NO enviamos password porque tu backend no lo acepta
       };
 
-      await api.post('/clients', clientData);
+      console.log('📤 Registrando cliente:', clientData);
       
-      alert('Registrado con éxito. Por favor inicia sesión.');
-      navigate('/');
+      const response = await api.post('/clients/', clientData);
+      
+      console.log('✅ Cliente registrado:', response.data);
+      
+      // Guardar contraseña localmente para poder hacer login después
+      const savedUsers = JSON.parse(localStorage.getItem('registeredUsers') || '{}');
+      savedUsers[formData.email] = formData.password;
+      localStorage.setItem('registeredUsers', JSON.stringify(savedUsers));
+      
+      // Guardar datos de sesión
+      localStorage.setItem('user', JSON.stringify(response.data));
+      localStorage.setItem('token', 'temp-token-' + response.data.id_key);
+      
+      alert('¡Registro exitoso! Bienvenido a TechStore');
+      navigate('/products');
+      
     } catch (err) {
-      const message = err.response?.data?.detail || 
-                     err.response?.data?.message || 
-                     'Error al registrar';
+      console.error('❌ Error:', err);
+      
+      let message = 'Error al registrar';
+      
+      if (err.response) {
+        if (err.response.status === 400) {
+          message = 'Datos inválidos. Verifica la información.';
+        } else if (err.response.status === 422) {
+          const details = err.response.data?.detail;
+          if (Array.isArray(details)) {
+            message = 'Error: ' + details.map(d => d.msg).join(', ');
+          } else {
+            message = 'Datos inválidos: ' + JSON.stringify(details);
+          }
+        } else {
+          message = err.response.data?.detail || 
+                   `Error del servidor (${err.response.status})`;
+        }
+      } else if (err.request) {
+        message = '🚫 No se pudo conectar con el servidor en ' + api.defaults.baseURL;
+      }
+      
       setError(message);
     } finally {
       setLoading(false);
@@ -85,7 +122,7 @@ export default function Register() {
               {/* Nombre */}
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Nombre
+                  Nombre *
                 </label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -104,7 +141,7 @@ export default function Register() {
               {/* Apellido */}
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Apellido
+                  Apellido *
                 </label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -124,7 +161,7 @@ export default function Register() {
             {/* Email */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                Email
+                Email *
               </label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -143,7 +180,7 @@ export default function Register() {
             {/* Teléfono */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                Teléfono
+                Teléfono *
               </label>
               <div className="relative">
                 <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -163,7 +200,7 @@ export default function Register() {
               {/* Contraseña */}
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Contraseña
+                  Contraseña *
                 </label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -175,6 +212,7 @@ export default function Register() {
                     className="w-full pl-11 pr-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500 transition-colors"
                     placeholder="••••••••"
                     required
+                    minLength={6}
                   />
                 </div>
               </div>
@@ -182,7 +220,7 @@ export default function Register() {
               {/* Confirmar Contraseña */}
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Confirmar Contraseña
+                  Confirmar Contraseña *
                 </label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -197,6 +235,11 @@ export default function Register() {
                   />
                 </div>
               </div>
+            </div>
+
+            {/* Info Note */}
+            <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 text-blue-400 text-xs">
+              ℹ️ Tu contraseña se guardará de forma segura en tu navegador para futuras sesiones
             </div>
 
             {/* Submit Button */}

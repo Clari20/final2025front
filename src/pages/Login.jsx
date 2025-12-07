@@ -16,19 +16,58 @@ export default function Login() {
     setError('');
 
     try {
-      // AJUSTA ESTA RUTA según tu API
-      const res = await api.post('/auth/login', { email, password });
+      console.log('🔐 Intentando login con:', email);
       
-      // Guarda el token y usuario
-      localStorage.setItem('token', res.data.token);
-      localStorage.setItem('user', JSON.stringify(res.data.user));
+      // Como tu API no tiene login, buscamos el cliente por email
+      const response = await api.get('/clients/');
+      const allClients = response.data;
       
-      // Redirige a productos
+      console.log('📋 Clientes obtenidos:', allClients.length);
+      
+      // Buscar cliente con este email
+      const client = allClients.find(c => c.email === email);
+      
+      if (!client) {
+        throw new Error('Usuario no encontrado. ¿Ya te registraste?');
+      }
+      
+      console.log('✅ Cliente encontrado:', client);
+      
+      // Verificar contraseña guardada localmente
+      const savedUsers = JSON.parse(localStorage.getItem('registeredUsers') || '{}');
+      const savedPassword = savedUsers[email];
+      
+      if (savedPassword && savedPassword !== password) {
+        throw new Error('Contraseña incorrecta');
+      }
+      
+      // Guardar datos de sesión
+      localStorage.setItem('token', 'temp-token-' + client.id_key);
+      localStorage.setItem('user', JSON.stringify(client));
+      
+      console.log('✅ Login exitoso');
       navigate('/products');
+      
     } catch (err) {
-      const message = err.response?.data?.detail || 
-                     err.response?.data?.message || 
-                     'Error al iniciar sesión';
+      console.error('❌ Error:', err);
+      
+      let message = 'Error al iniciar sesión';
+      
+      if (err.message.includes('Usuario no encontrado')) {
+        message = '❌ Usuario no encontrado. Por favor regístrate primero.';
+      } else if (err.message.includes('Contraseña incorrecta')) {
+        message = '❌ Contraseña incorrecta';
+      } else if (err.response) {
+        if (err.response.status === 404) {
+          message = '🚫 No se pudieron cargar los usuarios. Verifica el backend.';
+        } else {
+          message = err.response.data?.detail || 
+                   `Error del servidor (${err.response.status})`;
+        }
+      } else if (err.request) {
+        message = '🚫 No se pudo conectar con el servidor. Verifica que esté corriendo.';
+      }
+      
       setError(message);
     } finally {
       setLoading(false);
@@ -93,16 +132,6 @@ export default function Login() {
               </div>
             </div>
 
-            {/* Forgot Password */}
-            <div className="flex justify-end">
-              <button 
-                type="button"
-                className="text-sm text-indigo-400 hover:text-indigo-300 transition-colors"
-              >
-                ¿Olvidaste tu contraseña?
-              </button>
-            </div>
-
             {/* Submit Button */}
             <button
               type="submit"
@@ -134,10 +163,10 @@ export default function Login() {
           </div>
         </div>
 
-        {/* Demo Access (para testing) */}
+        {/* Info */}
         <div className="mt-6 p-4 bg-gray-900 rounded-lg border border-gray-800">
           <p className="text-gray-400 text-xs text-center">
-            Demo: admin@test.com / password123
+            💡 Primero regístrate, luego podrás iniciar sesión
           </p>
         </div>
       </div>

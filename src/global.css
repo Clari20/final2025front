@@ -1,11 +1,16 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 @import "tailwindcss";
 
 /* Estilos base personalizados */
 @layer base {
   body {
-    background-color: black;
-    color: white;
-    -webkit-font-smoothing: antialiased;
+    @apply bg-black text-white antialiased;
+  }
+  
+  * {
+    @apply scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-gray-900;
   }
 }
 
